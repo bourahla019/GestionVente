@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Suivi des Ventes de Produits</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+        }
+        @media print {
+            button {
+                display: none;
+            }
+            .no-print {
+                display: none;
+            }
+            body {
+                background-color: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Système de Suivi des Ventes de Produits</h1>
+        
+        <div class="no-print">
+            <div class="form-group">
+                <label for="productName">Nom du Produit:</label>
+                <input type="text" id="productName" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="initialQuantity">Quantité achetée (Stock initial):</label>
+                <input type="number" id="initialQuantity" min="0" required>
+            </div>
+            
+            <button onclick="setInitialQuantity()">Enregistrer la quantité initiale</button>
+            
+            <hr>
+            
+            <div class="form-group">
+                <label for="transactionType">Type d'opération:</label>
+                <select id="transactionType">
+                    <option value="sale">Vente</option>
+                    <option value="purchase">Achat</option>
+                    <option value="return">Retour</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="transactionQuantity">Quantité:</label>
+                <input type="number" id="transactionQuantity" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="transactionDate">Date de l'opération:</label>
+                <input type="date" id="transactionDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="transactionNotes">Notes:</label>
+                <input type="text" id="transactionNotes">
+            </div>
+            
+            <button onclick="addTransaction()">Ajouter une transaction</button>
+        </div>
+        
+        <div class="summary">
+            <h3>Résumé du Stock</h3>
+            <p id="productSummary"></p>
+            <p id="quantitySummary"></p>
+            <p id="salesSummary"></p>
+        </div>
+        
+        <h3>Historique des Transactions</h3>
+        <table id="transactionsTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type d'opération</th>
+                    <th>Quantité</th>
+                    <th>Stock après opération</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody id="transactionsBody">
+                <!-- Les transactions seront ajoutées ici -->
+            </tbody>
+        </table>
+        
+        <div class="no-print" style="margin-top: 20px;">
+            <button onclick="window.print()">Imprimer le rapport de ventes</button>
+            <button onclick="clearData()" style="background-color: #e74c3c;">Effacer toutes les données</button>
+        </div>
+    </div>
+
+    <script>
+        let product = {
+            name: '',
+            initialQuantity: 0,
+            currentQuantity: 0,
+            totalSales: 0,
+            transactions: []
+        };
+
+        function setInitialQuantity() {
+            const productName = document.getElementById('productName').value;
+            const initialQuantity = parseInt(document.getElementById('initialQuantity').value);
+            
+            if (!productName || isNaN(initialQuantity)) {
+                alert('Veuillez entrer le nom du produit et la quantité correctement');
+                return;
+            }
+            
+            product.name = productName;
+            product.initialQuantity = initialQuantity;
+            product.currentQuantity = initialQuantity;
+            product.totalSales = 0;
+            product.transactions = [];
+            
+            updateSummary();
+            document.getElementById('transactionsBody').innerHTML = '';
+            alert('Quantité initiale enregistrée avec succès');
+        }
+
+        function addTransaction() {
+            if (product.name === '') {
+                alert('Veuillez d\'abord spécifier le nom du produit et enregistrer la quantité initiale');
+                return;
+            }
+            
+            const type = document.getElementById('transactionType').value;
+            const quantity = parseInt(document.getElementById('transactionQuantity').value);
+            const date = document.getElementById('transactionDate').value;
+            const notes = document.getElementById('transactionNotes').value;
+            
+            if (isNaN(quantity) || quantity <= 0 || !date) {
+                alert('Veuillez entrer les données correctement');
+                return;
+            }
+            
+            let transactionQuantity = quantity;
+            
+            if (type === 'sale') {
+                if (quantity > product.currentQuantity) {
+                    alert('Stock insuffisant pour cette vente');
+                    return;
+                }
+                product.currentQuantity -= quantity;
+                product.totalSales += quantity;
+            } else if (type === 'purchase') {
+                product.currentQuantity += quantity;
+            } else if (type === 'return') {
+                product.currentQuantity += quantity;
+                transactionQuantity = -quantity; // Pour l'affichage comme valeur négative dans le tableau
+            }
+            
+            const transaction = {
+                date: date,
+                type: type,
+                quantity: transactionQuantity,
+                balance: product.currentQuantity,
+                notes: notes
+            };
+            
+            product.transactions.push(transaction);
+            updateTransactionsTable();
+            updateSummary();
+            
+            // Effacer les champs de saisie
+            document.getElementById('transactionQuantity').value = '';
+            document.getElementById('transactionNotes').value = '';
+        }
+
+        function updateSummary() {
+            document.getElementById('productSummary').textContent = `Nom du Produit: ${product.name}`;
+            document.getElementById('quantitySummary').textContent = `Stock actuel: ${product.currentQuantity}`;
+            document.getElementById('salesSummary').textContent = `Ventes totales: ${product.totalSales}`;
+        }
+
+        function updateTransactionsTable() {
+            const tbody = document.getElementById('transactionsBody');
+            tbody.innerHTML = '';
+            
+            product.transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                
+                const typeText = 
+                    transaction.type === 'sale' ? 'Vente' : 
+                    transaction.type === 'purchase' ? 'Achat' : 'Retour';
+                
+                row.innerHTML = `
+                    <td>${transaction.date}</td>
+                    <td>${typeText}</td>
+                    <td>${transaction.quantity > 0 ? '+' : ''}${transaction.quantity}</td>
+                    <td>${transaction.balance}</td>
+                    <td>${transaction.notes || '-'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function clearData() {
+            if (confirm('Êtes-vous sûr de vouloir effacer toutes les données?')) {
+                product = {
+                    name: '',
+                    initialQuantity: 0,
+                    currentQuantity: 0,
+                    totalSales: 0,
+                    transactions: []
+                };
+                
+                document.getElementById('productName').value = '';
+                document.getElementById('initialQuantity').value = '';
+                document.getElementById('transactionsBody').innerHTML = '';
+                updateSummary();
+            }
+        }
+
+        // Définir la date actuelle comme valeur par défaut
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const dateStr = today.toISOString().substr(0, 10);
+            document.getElementById('transactionDate').value = dateStr;
+        });
+    </script>
+</body>
+</html>
